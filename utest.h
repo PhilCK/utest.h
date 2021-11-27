@@ -33,6 +33,15 @@
 #ifndef SHEREDOM_UTEST_H_INCLUDED
 #define SHEREDOM_UTEST_H_INCLUDED
 
+#ifdef __GNUC__
+
+/*
+   Disable warning about 'clearing an object of type ‘struct ...’ with no trivial copy-assignment; use assignment or value-initialization instead'
+*/
+#pragma GCC diagnostic ignored "-Wclass-memaccess"
+
+#endif
+
 #ifdef _MSC_VER
 /*
    Disable warning about not inlining 'inline' functions.
