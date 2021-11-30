@@ -33,15 +33,6 @@
 #ifndef SHEREDOM_UTEST_H_INCLUDED
 #define SHEREDOM_UTEST_H_INCLUDED
 
-#ifdef __GNUC__
-
-/*
-   Disable warning about 'clearing an object of type ‘struct ...’ with no trivial copy-assignment; use assignment or value-initialization instead'
-*/
-#pragma GCC diagnostic ignored "-Wclass-memaccess"
-
-#endif
-
 #ifdef _MSC_VER
 /*
    Disable warning about not inlining 'inline' functions.
@@ -193,6 +184,11 @@ UTEST_C_FUNC __declspec(dllimport) int __stdcall QueryPerformanceFrequency(
       _Pragma("clang diagnostic ignored \"-Wglobal-constructors\"")
 
 #define UTEST_INITIALIZER_END_DISABLE_WARNINGS _Pragma("clang diagnostic pop")
+#elif defined(__GNUC__) && __GNUC__ >= 8
+#define UTEST_INITIALIZER_BEGIN_DISABLE_WARNINGS                               \
+  _Pragma("GCC diagnostic push")                                             \
+
+#define UTEST_INITIALIZER_END_DISABLE_WARNINGS _Pragma("GCC diagnostic pop")
 #else
 #define UTEST_INITIALIZER_BEGIN_DISABLE_WARNINGS
 #define UTEST_INITIALIZER_END_DISABLE_WARNINGS
@@ -200,7 +196,8 @@ UTEST_C_FUNC __declspec(dllimport) int __stdcall QueryPerformanceFrequency(
 
 #define UTEST_INITIALIZER(f)                                                   \
   struct f##_cpp_struct { f##_cpp_struct(); }; \
-  UTEST_INITIALIZER_BEGIN_DISABLE_WARNINGS static f##_cpp_struct f##_cpp_global UTEST_INITIALIZER_END_DISABLE_WARNINGS; \
+  UTEST_INITIALIZER_BEGIN_DISABLE_WARNINGS static f##_cpp_struct f##_cpp_global; \
+UTEST_INITIALIZER_END_DISABLE_WARNINGS \
   f##_cpp_struct::f##_cpp_struct()
 #elif defined(_MSC_VER)
 #define UTEST_INLINE __forceinline
@@ -217,6 +214,11 @@ UTEST_C_FUNC __declspec(dllimport) int __stdcall QueryPerformanceFrequency(
       _Pragma("clang diagnostic ignored \"-Wmissing-variable-declarations\"")
 
 #define UTEST_INITIALIZER_END_DISABLE_WARNINGS _Pragma("clang diagnostic pop")
+#elif defined(__GNUC__) && __GNUC__ >= 8
+#define UTEST_INITIALIZER_BEGIN_DISABLE_WARNINGS                               \
+  _Pragma("GCC diagnostic push")                                             \
+
+#define UTEST_INITIALIZER_END_DISABLE_WARNINGS _Pragma("GCC diagnostic pop")
 #else
 #define UTEST_INITIALIZER_BEGIN_DISABLE_WARNINGS
 #define UTEST_INITIALIZER_END_DISABLE_WARNINGS
@@ -845,7 +847,19 @@ utest_type_printer(long long unsigned int i) {
   static void utest_f_teardown_##FIXTURE(int *utest_result,                    \
                                          struct FIXTURE *utest_fixture)
 
+#if defined(__GNUC__) && __GNUC__ >= 8 
+#define UTEST_FIXTURE_SURPRESS_WARNING_BEGIN \
+  _Pragma("GCC diagnostic push") \
+    _Pragma("GCC diagnostic ignored \"-Wclass-memaccess\"")
+#define UTEST_FIXTURE_SURPRESS_WARNING_END \
+  _Pragma("GCC diagnostic pop")
+#else
+#define UTEST_FIXTURE_SURPRESS_WARNING_BEGIN
+#define UTEST_FIXTURE_SURPRESS_WARNING_END
+#endif
+
 #define UTEST_F(FIXTURE, NAME)                                                 \
+  UTEST_FIXTURE_SURPRESS_WARNING_BEGIN                                         \
   UTEST_EXTERN struct utest_state_s utest_state;                               \
   static void utest_f_setup_##FIXTURE(int *, struct FIXTURE *);                \
   static void utest_f_teardown_##FIXTURE(int *, struct FIXTURE *);             \
@@ -876,6 +890,7 @@ utest_type_printer(long long unsigned int i) {
     utest_state.tests[index].name = name;                                      \
     UTEST_SNPRINTF(name, name_size, "%s", name_part);                          \
   }                                                                            \
+  UTEST_FIXTURE_SURPRESS_WARNING_END                                           \
   void utest_run_##FIXTURE##_##NAME(int *utest_result,                         \
                                     struct FIXTURE *utest_fixture)
 
